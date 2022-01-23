@@ -107,6 +107,8 @@ async def catalog(c: types.CallbackQuery):
                     mark2 = types.InlineKeyboardMarkup(row_width=1)
                     mark2.add(types.InlineKeyboardButton(text=f"Купить за {dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0])[f][3]} руб.", callback_data=dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0])[f][3]))
                     await c.message.answer(f"<strong>Название: </strong>{dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0])[f][1]}\n<strong>Описание: </strong>{dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0])[f][2]}", reply_markup=mark2)
+                    if c.data == dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0])[f][3]:
+                        await c.message.answer(dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0])[f][1])
     if c.data == "back":
         mark1 = types.InlineKeyboardMarkup(row_width=len(dp.show_categories()))
         for i in range(0, len(dp.show_categories())):

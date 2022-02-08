@@ -1,12 +1,11 @@
 
 # Modules
 
-from dispacher import db, bot, dp
+from dispacher import db, bot, dp, mongo
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram import types, executor
 from rich.console import Console
-from pymongo import MongoClient
 
 # Class State
 
@@ -27,17 +26,47 @@ async def start(message: types.Message):
     mark1.row("Настройки 📎", "Помощь ❓")
     mark1.row("Заказы 📦", "Каталог 🛒")
     mark1.row("Корзина 🛍", "О нас ❕")
-    await message.answer(f"Привет {message.from_user.first_name} 😁\n<strong>Это телеграмм бот магазина ЮХУ в городе Хабаровск</strong>\nЗдесь ты сможешь купить нужный тебе товар и забрать его в ближайшем нашем магазине\nCreator: @YungHellen", parse_mode="html", reply_markup=mark1)
+    await message.answer(f"Привет {message.from_user.first_name} 😁\n<strong>Это телеграмм бот магазина ЮХУ</strong>\nЗдесь ты сможешь купить нужный тебе товар и забрать его в ближайшем нашем магазине\nCreator: @YungHellen", parse_mode="html", reply_markup=mark1)
+
+@db.message_handler(commands=['history'])
+async def history(message: types.Message):
+    if mongo.show_cart(message.from_user.id):
+        for i in mongo.show_cart(message.from_user.id):
+            await message.answer(f'Товар - <strong>{i["product"]}</strong>\nСтатус доставки - <strong>{i["status"]}</strong>\nTrack - <strong>{i["track"]}</strong>\n\n', parse_mode='html')
+    else:
+        await message.answer(f'Вы ничего у нас не заказывали 😁\nПосмотрите наш /catalog')
 
 @db.message_handler(state=FSMSettings.name)
 async def upload_name(message: types.message, state: FSMContext):
     async with state.proxy() as data:
         data['name'] = message.text
     await message.answer('Имя сохранено')
-    if dp.show_number(message.from_user.id):
-        dp.update_name(message.from_user.id, data['name'])
+    if mongo.show_users(message.from_user.id):
+        mongo.update_name(message.from_user.id, data['name'])
     else:
-        dp.inster_name(message.from_user.id, data['name'])
+        mongo.inster_name(message.from_user.id, data['name'])
+    await state.finish()
+
+@db.message_handler(state=FSMSettings.number)
+async def upload_name(message: types.message, state: FSMContext):
+    async with state.proxy() as data:
+        data['number'] = message.text
+    await message.answer('Номер сохранен')
+    if mongo.show_users(message.from_user.id):
+        mongo.update_number(message.from_user.id, data['number'])
+    else:
+        mongo.inster_number(message.from_user.id, data['number'])
+    await state.finish()
+
+@db.message_handler(state=FSMSettings.age)
+async def upload_age(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['age'] = message.text
+    await message.answer('Возраст сохранен')
+    if mongo.show_users(message.from_user.id):
+        mongo.update_age(message.from_user.id, data['age'])
+    else:
+        mongo.inster_age(message.from_user.id, data['age'])
     await state.finish()
 
 @db.message_handler(commands=['settings'])
@@ -48,78 +77,52 @@ async def settings(message: types.Message):
     mark1.row('⬅️')
     mark1.add(btn1)
     try:
-        if dp.show_age(message.from_user.id)[0] < 18:
-            await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {dp.show_name(message.from_user.id)[0]}\nНомер - +{dp.show_number(message.from_user.id)[0]}\nВозраст - {dp.show_age(message.from_user.id)[0]} <strong>(меньше 18!)</strong>", reply_markup=mark1)
+        if int(mongo.show_users(message.from_user.id)["age"]) < 18:
+            await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {mongo.show_users(message.from_user.id)['name']}\nНомер - +{mongo.show_users(message.from_user.id)['number']}\nВозраст - {mongo.show_users(message.from_user.id)['age']} <strong>(меньше 18!)</strong>", reply_markup=mark1)
         else:
-            await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {dp.show_name(message.from_user.id)[0]}\nНомер - +{dp.show_number(message.from_user.id)[0]}\nВозраст - {dp.show_age(message.from_user.id)[0]}", reply_markup=mark1)
+            await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {mongo.show_users(message.from_user.id)['name']}\nНомер - +{mongo.show_users(message.from_user.id)['number']}\nВозраст - {mongo.show_users(message.from_user.id)['age']}", reply_markup=mark1)
     except TypeError:
         await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - не введено\nНомер - не введено\nВозраст - не введено\n\nЧтобы поля стали видны нужно заполнить их всех", reply_markup=mark1)
-
-@db.message_handler(state=FSMSettings.number)
-async def upload_name(message: types.message, state: FSMContext):
-    async with state.proxy() as data:
-        data['number'] = message.text
-    await message.answer('Номер сохранен')
-    if dp.show_name(message.from_user.id):
-        dp.update_number(message.from_user.id, data['number'])
-    else:
-        dp.inster_number(message.from_user.id, data['number'])
-    await state.finish()
-
-@db.message_handler(state=FSMSettings.age)
-async def upload_age(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        data['age'] = message.text
-    await message.answer('Возраст сохранен')
-    if dp.show_name(message.from_user.id):
-        dp.update_age(message.from_user.id, data['age'])
-    else:
-        dp.inster_age(message.from_user.id, data['age'])
-    await state.finish()
 
 @db.message_handler(commands=['catalog'])
 async def catalog(message: types.Message):
     mark1 = types.InlineKeyboardMarkup(row_width=len(dp.show_categories()))
-    for i in range(0, len(dp.show_categories())):
-        mark1.row(types.InlineKeyboardButton(text=dp.show_categories()[i][0], callback_data=dp.show_categories()[i][0]))
+    for i in mongo.show_categories():
+        mark1.row(types.InlineKeyboardButton(text=i["title"], callback_data=i["title"]))
     mark1.add(types.InlineKeyboardButton(text="🏠", callback_data="home"))
     await message.answer(f"Категории товаров:", reply_markup=mark1)
 
-@db.message_handler(commands=['history'])
-async def history(message: types.Message):
-    if dp.show_cart(message.from_user.id):
-        for i in range(0, len(dp.show_cart(message.from_user.id))):
-            await message.answer(f'Товар - <strong>{dp.show_cart(message.from_user.id)[i][5]}</strong>\nСтатус доставки - <strong>{dp.show_cart(message.from_user.id)[i][7]}</strong>\nTrack - <strong>{dp.show_cart(message.from_user.id)[i][6]}</strong>\n\n', parse_mode='html')
-    else:
-        await message.answer(f'Вы ничего у нас не заказывали 😁\nПосмотрите наш /catalog')
-
 @db.message_handler(commands=['cart'])
 async def cart(message: types.Message):
-    if dp.show_history(message.from_user.id):
-        for i in range(0, len(dp.show_history(message.from_user.id))):
-            mark1 = types.InlineKeyboardMarkup(row_width=len(dp.show_history(message.from_user.id)))
-            mark1.add(types.InlineKeyboardButton(text=f"❌", callback_data=f"delete {dp.show_history(message.from_user.id)[i][2]}"))
-            await message.answer(f"<strong>Название: </strong>{dp.show_history(message.from_user.id)[i][2]}\n<strong>Описание: </strong>{dp.show_history(message.from_user.id)[i][3]}\n<strong>Цена:</strong> {dp.show_history(message.from_user.id)[i][4]}", reply_markup=mark1)
+    if mongo.show_history(message.from_user.id):
+        result = 0
+        count = 0
+        for i in mongo.show_history(message.from_user.id):
+            mark3 = types.InlineKeyboardMarkup(row_width=1)
+            mark3.add(types.InlineKeyboardButton(text=f"❌", callback_data=f"delete {i['product']}"))
+            await message.answer(f"<strong>Название: </strong>{i['product']}\n<strong>Описание: </strong>{i['description']}\n<strong>Цена:</strong> {i['price']}", reply_markup=mark3)
+            result += int(i['price'])
+            count += 1
         mark2 = types.ReplyKeyboardMarkup(resize_keyboard=True)
         mark2.row(f"Купить всё", "Обновить")
         mark2.row(f"🏠")
-        await message.answer(f"Корзина ({len(dp.show_history(message.from_user.id))})", reply_markup=mark2)
+        await message.answer(f"Корзина ({count}) & Общая сумма <strong>{result} руб.</strong>", reply_markup=mark2, parse_mode='html')
     else:
         await message.answer("Корзина пуста 🚫\nПосмотрите наш /catalog")
 
 @db.message_handler(commands=['about'])
 async def about(message: types.Message):
-    await message.answer("Магазин тобачной продукции ЮХУ\nНаши магазины находятся по всему Хабаровску\nул. Карла Маркса; тогровый центр Броско Молл; ул. Ленинградская")
+    await message.answer("Магазин тобачной продукции ЮХУ\nНаши магазины находятся в Владивостоке, Сахалине, Улан-Удэ и Магадане\n\n<strong>Владивосток</strong>: ул. Луговая, 18; ул. Семёновская, 23\n<strong>Южно-Сахалинск</strong>: ул. Комсомольская, 157; ул.Пуркаева, 65\n<strong>Хабаровск</strong>: Амурский Бульвар 56\n<strong>Корсаков</strong>: ул.Корсаковская, 10\n<strong>Улан-Удэ</strong>: ул.Ербанова, 20; ул.Терешкова, 14\n<strong>Магадан</strong>: Проспект Карла Маркса, 23")
 
 @db.callback_query_handler(lambda c: True)
 async def catalog(c: types.CallbackQuery):
-    for i in range(0, len(dp.show_categories())):
-        if c.data == dp.show_categories()[i][0]:
+    for i in mongo.show_categories():
+        if c.data == i['title']:
             # await c.message.answer(dp.show_under_categories(dp.show_categories()))
             try:
-                mark1 = types.InlineKeyboardMarkup(row_width=len(dp.show_under_categories(dp.show_categories()[i][0])))
-                for n in range(0, len(dp.show_under_categories(dp.show_categories()[i][0]))):
-                    mark1.row(types.InlineKeyboardButton(text=dp.show_under_categories(dp.show_categories()[i][0])[n][0], callback_data=dp.show_under_categories(dp.show_categories()[i][0])[n][0]))
+                mark1 = types.InlineKeyboardMarkup(row_width=True)
+                for n in mongo.show_under_categories(i["title"]):
+                    mark1.row(types.InlineKeyboardButton(text=n["title"], callback_data=n["title"]))
                 mark1.add(types.InlineKeyboardButton(text="⬅️", callback_data="back"))
                 await bot.edit_message_text(chat_id=c.message.chat.id, message_id=c.message.message_id, text="Подгруппы товаров:", reply_markup=mark1)
 
@@ -127,36 +130,38 @@ async def catalog(c: types.CallbackQuery):
                 mark1 = types.InlineKeyboardMarkup(row_width=1)
                 mark1.add(types.InlineKeyboardButton(text="⬅️", callback_data="back"))
                 await bot.edit_message_text(chat_id=c.message.chat.id, message_id=c.message.message_id, text="Подгруппы товаров:", reply_markup=mark1)
-        for n in range(0, len(dp.show_under_categories(dp.show_categories()[i][0]))):
-            if c.data == dp.show_under_categories(dp.show_categories()[i][0])[n][0]:
-                for f in range(0, len(dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0]))):
+        for n in dp.show_under_categories(i["title"]):
+            if c.data == n[0]:
+                count = 0
+                for f in mongo.show_product(n[0]):
                     mark2 = types.InlineKeyboardMarkup(row_width=1)
-                    mark2.add(types.InlineKeyboardButton(text=f"Добавить в корзину 🛍", callback_data=dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0])[f][1]))
-                    mark2.add(types.InlineKeyboardButton(text=f"Купить - {dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0])[f][3]} руб.", callback_data=dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0])[f][1]))
-                    await c.message.answer(f"<strong>Название: </strong>{dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0])[f][1]}\n<strong>Описание: </strong>{dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0])[f][2]}", reply_markup=mark2)
+                    mark2.add(types.InlineKeyboardButton(text=f"Добавить в корзину 🛍", callback_data=f["title"]))
+                    mark2.add(types.InlineKeyboardButton(text=f'Купить - {f["price"]} руб.', callback_data=f["price"]))
+                    await c.message.answer(f'<strong>Название: </strong>{f["title"]}\n<strong>Описание: </strong>{f["description"]}', reply_markup=mark2)
+                    count += 1
                 mark3 = types.ReplyKeyboardMarkup(resize_keyboard=True)
                 mark3.row("🏠", "🛒", "🛍")
-                await c.message.answer(f"Позаны все товары ({len(dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0]))})", reply_markup=mark3)
-        for n in range(0, len(dp.show_under_categories(dp.show_categories()[i][0]))):
-            for f in range(0, len(dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0]))):
-                if c.data == dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0])[f][1]:
+                await c.message.answer(f"Позаны все товары ({count})", reply_markup=mark3)
+        for n in mongo.show_under_categories(i["title"]):
+            for f in mongo.show_product(n["title"]):
+                if c.data == f['title']:
                     try:
-                        dp.inster_history(c.from_user.id, dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0])[f][1], dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0])[f][2], dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0])[f][3])
-                        await c.message.answer(f"Товар <strong>{dp.show_product(dp.show_under_categories(dp.show_categories()[i][0])[n][0])[f][1]}</strong> успешно добавлен в корзину", parse_mode='html')
+                        mongo.inster_history(c.from_user.id, f["title"], f["description"], f["price"])
+                        await c.message.answer(f'Товар <strong>{f["title"]}</strong> успешно добавлен в корзину', parse_mode='html')
                     except TypeError:
                         await c.message.answer(f"Введите все поля в /settings")
-    for p in range(0, len(dp.show_history(c.from_user.id))):
-        if c.data == f"delete {dp.show_history(c.from_user.id)[p][2]}":
+    for p in mongo.show_history(c.from_user.id):
+        if c.data == f'delete {p["product"]}':
             try:
-                dp.delete_history(c.from_user.id, dp.show_history(c.from_user.id)[p][2])
-                await c.message.answer(f"Товар успешно удален (<strong>{dp.show_history(c.from_user.id)[p][2]}</strong>) ❎", parse_mode='html')
+                mongo.delete_history(c.from_user.id, p["product"])
+                await c.message.answer(f'Товар успешно удален (<strong>{p["product"]}</strong>) ❎', parse_mode='html')
             except IndexError:
-                dp.delete_history(c.from_user.id, dp.show_history(c.from_user.id))
+                mongo.delete_history(c.from_user.id, mongo.show_history(c.from_user.id))
                 await c.message.answer(f"Товар успешно удален ❎", parse_mode='html')
     if c.data == "back":
-        mark1 = types.InlineKeyboardMarkup(row_width=len(dp.show_categories()))
-        for i in range(0, len(dp.show_categories())):
-            mark1.row(types.InlineKeyboardButton(text=dp.show_categories()[i][0], callback_data=dp.show_categories()[i][0]))
+        mark1 = types.InlineKeyboardMarkup(row_width=True)
+        for i in mongo.show_categories():
+            mark1.row(types.InlineKeyboardButton(text=i['title'], callback_data=i['title']))
         mark1.add(types.InlineKeyboardButton(text="🏠", callback_data="home"))
         await bot.edit_message_text(chat_id=c.message.chat.id, message_id=c.message.message_id, text=f"Категории товаров:", reply_markup=mark1)
     if c.data == 'home':
@@ -164,7 +169,7 @@ async def catalog(c: types.CallbackQuery):
         mark1.row("Настройки 📎", "Помощь ❓")
         mark1.row("Заказы 📦", "Каталог 🛒")
         mark1.row("Корзина 🛍", "О нас ❕")
-        await c.message.answer(f"Привет {c.message.from_user.first_name} 😁\n<strong>Это телеграмм бот магазина ЮХУ в городе Хабаровск</strong>\nЗдесь ты сможешь купить нужный тебе товар и забрать его в ближайшем нашем магазине\nCreator: @YungHellen", parse_mode="html", reply_markup=mark1)
+        await c.message.answer(f"Привет {c.message.from_user.first_name} 😁\n<strong>Это телеграмм бот магазина ЮХУ</strong>\nЗдесь ты сможешь купить нужный тебе товар и забрать его в ближайшем нашем магазине\nCreator: @YungHellen", parse_mode="html", reply_markup=mark1)
 
 @db.message_handler(content_types=['text'], state=None)
 async def keyboardbutton(message: types.Message):
@@ -178,10 +183,10 @@ async def keyboardbutton(message: types.Message):
              mark1.row('⬅️')
              mark1.add(btn1)
              try:
-                 if dp.show_age(message.from_user.id)[0] < 18:
-                     await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {dp.show_name(message.from_user.id)[0]}\nНомер - +{dp.show_number(message.from_user.id)[0]}\nВозраст - {dp.show_age(message.from_user.id)[0]} <strong>(меньше 18!)</strong>", reply_markup=mark1)
+                 if int(mongo.show_users(message.from_user.id)["age"]) < 18:
+                     await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {mongo.show_users(message.from_user.id)['name']}\nНомер - +{mongo.show_users(message.from_user.id)['number']}\nВозраст - {mongo.show_users(message.from_user.id)['age']} <strong>(меньше 18!)</strong>", reply_markup=mark1)
                  else:
-                     await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {dp.show_name(message.from_user.id)[0]}\nНомер - +{dp.show_number(message.from_user.id)[0]}\nВозраст - {dp.show_age(message.from_user.id)[0]}", reply_markup=mark1)
+                     await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {mongo.show_users(message.from_user.id)['name']}\nНомер - +{mongo.show_users(message.from_user.id)['number']}\nВозраст - {mongo.show_users(message.from_user.id)['age']}", reply_markup=mark1)
              except TypeError:
                  await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - не введено\nНомер - не введено\nВозраст - не введено\n\nЧтобы поля стали видны нужно заполнить их всех", reply_markup=mark1)
          if message.text == '⬅️':
@@ -191,56 +196,68 @@ async def keyboardbutton(message: types.Message):
              mark1.row('⬅️')
              mark1.add(btn1)
              try:
-                 if dp.show_age(message.from_user.id)[0] < 18:
-                     await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {dp.show_name(message.from_user.id)[0]}\nНомер - +{dp.show_number(message.from_user.id)[0]}\nВозраст - {dp.show_age(message.from_user.id)[0]} <strong>(меньше 18!)</strong>", reply_markup=mark1)
+                 if int(mongo.show_users(message.from_user.id)["age"]) < 18:
+                     await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {mongo.show_users(message.from_user.id)['name']}\nНомер - +{mongo.show_users(message.from_user.id)['number']}\nВозраст - {mongo.show_users(message.from_user.id)['age']} <strong>(меньше 18!)</strong>", reply_markup=mark1)
                  else:
-                     await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {dp.show_name(message.from_user.id)[0]}\nНомер - +{dp.show_number(message.from_user.id)[0]}\nВозраст - {dp.show_age(message.from_user.id)[0]}", reply_markup=mark1)
+                     await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {mongo.show_users(message.from_user.id)['name']}\nНомер - +{mongo.show_users(message.from_user.id)['number']}\nВозраст - {mongo.show_users(message.from_user.id)['age']}", reply_markup=mark1)
              except TypeError:
                  await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - не введено\nНомер - не введено\nВозраст - не введено\n\nЧтобы поля стали видны нужно заполнить их всех", reply_markup=mark1)
          if message.text == "Корзина 🛍":
-             if dp.show_history(message.from_user.id):
-                 for i in range(0, len(dp.show_history(message.from_user.id))):
-                     mark3 = types.InlineKeyboardMarkup(row_width=len(dp.show_history(message.from_user.id)))
-                     mark3.add(types.InlineKeyboardButton(text=f"❌", callback_data=f"delete {dp.show_history(message.from_user.id)[i][2]}"))
-                     await message.answer(f"<strong>Название: </strong>{dp.show_history(message.from_user.id)[i][2]}\n<strong>Описание: </strong>{dp.show_history(message.from_user.id)[i][3]}\n<strong>Цена:</strong> {dp.show_history(message.from_user.id)[i][4]}", reply_markup=mark3)
+             if mongo.show_history(message.from_user.id):
+                 result = 0
+                 count = 0
+                 for i in mongo.show_history(message.from_user.id):
+                     mark3 = types.InlineKeyboardMarkup(row_width=1)
+                     mark3.add(types.InlineKeyboardButton(text=f"❌", callback_data=f"delete {i['product']}"))
+                     await message.answer(f"<strong>Название: </strong>{i['product']}\n<strong>Описание: </strong>{i['description']}\n<strong>Цена:</strong> {i['price']}", reply_markup=mark3)
+                     result += int(i['price'])
+                     count += 1
                  mark2 = types.ReplyKeyboardMarkup(resize_keyboard=True)
                  mark2.row(f"Купить всё", "Обновить")
                  mark2.row(f"🏠")
-                 await message.answer(f"Корзина ({len(dp.show_history(message.from_user.id))})", reply_markup=mark2)
+                 await message.answer(f"Корзина ({count}) & Общая сумма <strong>{result} руб.</strong>", reply_markup=mark2, parse_mode='html')
              else:
                  await message.answer("Корзина пуста 🚫\nПосмотрите наш /catalog")
          if message.text == "🛍":
-             if dp.show_history(message.from_user.id):
-                 for i in range(0, len(dp.show_history(message.from_user.id))):
-                     mark1 = types.InlineKeyboardMarkup(row_width=len(dp.show_history(message.from_user.id)))
-                     mark1.add(types.InlineKeyboardButton(text=f"❌", callback_data=f"delete {dp.show_history(message.from_user.id)[i][2]}"))
-                     await message.answer(f"<strong>Название: </strong>{dp.show_history(message.from_user.id)[i][2]}\n<strong>Описание: </strong>{dp.show_history(message.from_user.id)[i][3]}\n<strong>Цена:</strong> {dp.show_history(message.from_user.id)[i][4]}", reply_markup=mark1)
+             if mongo.show_history(message.from_user.id):
+                 result = 0
+                 count = 0
+                 for i in mongo.show_history(message.from_user.id):
+                     mark3 = types.InlineKeyboardMarkup(row_width=1)
+                     mark3.add(types.InlineKeyboardButton(text=f"❌", callback_data=f"delete {i['product']}"))
+                     await message.answer(f"<strong>Название: </strong>{i['product']}\n<strong>Описание: </strong>{i['description']}\n<strong>Цена:</strong> {i['price']}", reply_markup=mark3)
+                     result += int(i['price'])
+                     count += 1
                  mark2 = types.ReplyKeyboardMarkup(resize_keyboard=True)
                  mark2.row(f"Купить всё", "Обновить")
                  mark2.row(f"🏠")
-                 await message.answer(f"Корзина ({len(dp.show_history(message.from_user.id))})", reply_markup=mark2)
+                 await message.answer(f"Корзина ({count}) & Общая сумма <strong>{result} руб.</strong>", reply_markup=mark2, parse_mode='html')
              else:
                  await message.answer("Корзина пуста 🚫\nПосмотрите наш /catalog")
          if message.text == "Обновить":
-             if dp.show_history(message.from_user.id):
-                 for i in range(0, len(dp.show_history(message.from_user.id))):
-                     mark3 = types.InlineKeyboardMarkup(row_width=len(dp.show_history(message.from_user.id)))
-                     mark3.add(types.InlineKeyboardButton(text=f"❌", callback_data=f"delete {dp.show_history(message.from_user.id)[i][2]}"))
-                     await message.answer(f"<strong>Название: </strong>{dp.show_history(message.from_user.id)[i][2]}\n<strong>Описание: </strong>{dp.show_history(message.from_user.id)[i][3]}\n<strong>Цена:</strong> {dp.show_history(message.from_user.id)[i][4]}", reply_markup=mark3)
+             if mongo.show_history(message.from_user.id):
+                 result = 0
+                 count = 0
+                 for i in mongo.show_history(message.from_user.id):
+                     mark3 = types.InlineKeyboardMarkup(row_width=1)
+                     mark3.add(types.InlineKeyboardButton(text=f"❌", callback_data=f"delete {i['product']}"))
+                     await message.answer(f"<strong>Название: </strong>{i['product']}\n<strong>Описание: </strong>{i['description']}\n<strong>Цена:</strong> {i['price']}", reply_markup=mark3)
+                     result += int(i['price'])
+                     count += 1
                  mark2 = types.ReplyKeyboardMarkup(resize_keyboard=True)
                  mark2.row(f"Купить всё", "Обновить")
                  mark2.row(f"🏠")
-                 await message.answer(f"Корзина ({len(dp.show_history(message.from_user.id))})", reply_markup=mark2)
+                 await message.answer(f"Корзина ({count}) & Общая сумма <strong>{result} руб.</strong>", reply_markup=mark2, parse_mode='html')
              else:
                  await message.answer("Корзина пуста 🚫\nПосмотрите наш /catalog")
          if message.text == "О нас ❕":
-             await message.answer("Магазин тобачной продукции ЮХУ\nНаши магазины находятся по всему Хабаровску\nул. Карла Маркса; тогровый центр Броско Молл; ул. Ленинградская")
+             await message.answer("Магазин тобачной продукции ЮХУ\nНаши магазины находятся в Владивостоке, Сахалине, Улан-Удэ и Магадане\n\n<strong>Владивосток</strong>: ул. Луговая, 18; ул. Семёновская, 23\n<strong>Южно-Сахалинск</strong>: ул. Комсомольская, 157; ул.Пуркаева, 65\n<strong>Хабаровск</strong>: Амурский Бульвар 56\n<strong>Корсаков</strong>: ул.Корсаковская, 10\n<strong>Улан-Удэ</strong>: ул.Ербанова, 20; ул.Терешкова, 14\n<strong>Магадан</strong>: Проспект Карла Маркса, 23")
          if message.text == '🏠':
              mark1 = types.ReplyKeyboardMarkup(resize_keyboard=True)
              mark1.row("Настройки 📎", "Помощь ❓")
              mark1.row("Заказы 📦", "Каталог 🛒")
              mark1.row("Корзина 🛍", "О нас ❕")
-             await message.answer(f"Привет {message.from_user.first_name} 😁\n<strong>Это телеграмм бот магазина ЮХУ в городе Хабаровск</strong>\nЗдесь ты сможешь купить нужный тебе товар и забрать его в ближайшем нашем магазине\nCreator: @YungHellen", parse_mode="html", reply_markup=mark1)
+             await message.answer(f"Привет {message.from_user.first_name} 😁\n<strong>Это телеграмм бот магазина ЮХУ</strong>\nЗдесь ты сможешь купить нужный тебе товар и забрать его в ближайшем нашем магазине\nCreator: @YungHellen", parse_mode="html", reply_markup=mark1)
          if message.text == 'Имя':
              await FSMSettings.name.set()
              await message.answer("Введи свое имя")
@@ -252,28 +269,28 @@ async def keyboardbutton(message: types.Message):
              await message.answer("Введите свой возраст")
          if message.text == 'Каталог 🛒':
              mark1 = types.InlineKeyboardMarkup(row_width=len(dp.show_categories()))
-             for i in range(0, len(dp.show_categories())):
-                 mark1.row(types.InlineKeyboardButton(text=dp.show_categories()[i][0], callback_data=dp.show_categories()[i][0]))
+             for i in mongo.show_categories():
+                 mark1.row(types.InlineKeyboardButton(text=i["title"], callback_data=i["title"]))
              mark1.add(types.InlineKeyboardButton(text="🏠", callback_data="home"))
              await message.answer(f"Категории товаров:", reply_markup=mark1)
          if message.text == '🛒':
              mark1 = types.InlineKeyboardMarkup(row_width=len(dp.show_categories()))
-             for i in range(0, len(dp.show_categories())):
-                 mark1.row(types.InlineKeyboardButton(text=dp.show_categories()[i][0], callback_data=dp.show_categories()[i][0]))
+             for i in mongo.show_categories():
+                 mark1.row(types.InlineKeyboardButton(text=i["title"], callback_data=i["title"]))
              mark1.add(types.InlineKeyboardButton(text="🏠", callback_data="home"))
              await message.answer(f"Категории товаров:", reply_markup=mark1)
          if message.text == "Купить всё":
              try:
-                 for i in range(0, len(dp.show_history(message.from_user.id))):
-                     dp.inster_cart(message.from_user.id, dp.show_name(message.from_user.id)[0], dp.show_number(message.from_user.id)[0], dp.show_age(message.from_user.id)[0], dp.show_history(message.from_user.id)[i][2])
-                 dp.delete_all_history(message.from_user.id)
-                 await message.answer(f"Все товары успешно куплены ✅")
+                 for i in mongo.show_history(message.from_user.id):
+                     mongo.inster_cart(message.from_user.id, mongo.show_users(message.from_user.id)["name"], mongo.show_users(message.from_user.id)["number"], mongo.show_users(message.from_user.id)["age"], i["product"], i["price"])
+                 mongo.delete_all_history(message.from_user.id)
+                 await message.answer(f"<strong>Все товары успешно куплены</strong> ✅\nВы сможете забрать все товары в наших магазинах /about, просто показав track-номер\n<strong>Спасибо за покупку</strong> 😃", parse_mode="html")
              except TypeError:
                  await message.answer("Заполните все поля в /settings")
          if message.text == 'Заказы 📦':
              if dp.show_cart(message.from_user.id):
-                 for i in range(0, len(dp.show_cart(message.from_user.id))):
-                     await message.answer(f'Товар - <strong>{dp.show_cart(message.from_user.id)[i][5]}</strong>\nСтатус доставки - <strong>{dp.show_cart(message.from_user.id)[i][7]}</strong>\nTrack - <strong>{dp.show_cart(message.from_user.id)[i][6]}</strong>\n\n', parse_mode='html')
+                 for i in mongo.show_cart(message.from_user.id):
+                     await message.answer(f'Товар - <strong>{i["product"]}</strong>\nСтатус доставки - <strong>{i["status"]}</strong>\nTrack - <strong>{i["track"]}</strong>\n\n', parse_mode='html')
              else:
                  await message.answer(f'Вы ничего у нас не заказывали 😁\nПосмотрите наш /catalog')
 

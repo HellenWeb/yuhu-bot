@@ -1,5 +1,9 @@
-# Yuhu Market Bot | @yuhu_market_bot 🖼
-Bot in telegram for hookah "Yuhu" 🚬
+# 🖼 Yuhu Market Bot | @yuhu_market_bot
+🚬 Bot in telegram for hookah "Yuhu"
+## Launching Bot
+```
+python3 main.py
+```
 ## Description
 The bot in the telegram for hookah Yuhu is made in Python. In it you can buy the goods you need. 
 Also, the bot is made on the basis of MongoDB

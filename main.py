@@ -93,7 +93,7 @@ async def settings(message: types.Message):
             await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {mongo.show_users(message.from_user.id)['name']}\nНомер - +{mongo.show_users(message.from_user.id)['number']}\nВозраст - {mongo.show_users(message.from_user.id)['age']} <strong>(меньше 18!)</strong>", reply_markup=mark1)
         else:
             await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {mongo.show_users(message.from_user.id)['name']}\nНомер - +{mongo.show_users(message.from_user.id)['number']}\nВозраст - {mongo.show_users(message.from_user.id)['age']}", reply_markup=mark1)
-    except TypeError:
+    except TypeError and KeyError:
         await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - не введено\nНомер - не введено\nВозраст - не введено\n\nЧтобы поля стали видны нужно заполнить их всех", reply_markup=mark1)
 
 """Function to show all catalog"""
@@ -170,7 +170,7 @@ async def catalog(c: types.CallbackQuery):
                     try:
                         mongo.inster_history(c.from_user.id, f["title"], f["description"], f["price"])
                         await c.message.answer(f'Товар <strong>{f["title"]}</strong> успешно добавлен в корзину', parse_mode='html')
-                    except TypeError:
+                    except TypeError and KeyError:
                         await c.message.answer(f"Введите все поля в /settings")
 
     """To delete product from cart"""
@@ -220,7 +220,7 @@ async def keyboardbutton(message: types.Message):
                      await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {mongo.show_users(message.from_user.id)['name']}\nНомер - +{mongo.show_users(message.from_user.id)['number']}\nВозраст - {mongo.show_users(message.from_user.id)['age']} <strong>(меньше 18!)</strong>", reply_markup=mark1)
                  else:
                      await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {mongo.show_users(message.from_user.id)['name']}\nНомер - +{mongo.show_users(message.from_user.id)['number']}\nВозраст - {mongo.show_users(message.from_user.id)['age']}", reply_markup=mark1)
-             except TypeError:
+             except TypeError and KeyError:
                  await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - не введено\nНомер - не введено\nВозраст - не введено\n\nЧтобы поля стали видны нужно заполнить их всех", reply_markup=mark1)
          if message.text == '⬅️':
              mark1 = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -233,7 +233,7 @@ async def keyboardbutton(message: types.Message):
                      await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {mongo.show_users(message.from_user.id)['name']}\nНомер - +{mongo.show_users(message.from_user.id)['number']}\nВозраст - {mongo.show_users(message.from_user.id)['age']} <strong>(меньше 18!)</strong>", reply_markup=mark1)
                  else:
                      await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {mongo.show_users(message.from_user.id)['name']}\nНомер - +{mongo.show_users(message.from_user.id)['number']}\nВозраст - {mongo.show_users(message.from_user.id)['age']}", reply_markup=mark1)
-             except TypeError:
+             except TypeError and KeyError:
                  await message.answer(f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - не введено\nНомер - не введено\nВозраст - не введено\n\nЧтобы поля стали видны нужно заполнить их всех", reply_markup=mark1)
          if message.text == "Корзина 🛍":
              if mongo.show_history(message.from_user.id):
@@ -314,11 +314,14 @@ async def keyboardbutton(message: types.Message):
              await message.answer(f"Категории товаров:", reply_markup=mark1)
          if message.text == "Купить всё":
              try:
-                 for i in mongo.show_history(message.from_user.id):
-                     mongo.inster_cart(message.from_user.id, mongo.show_users(message.from_user.id)["name"], mongo.show_users(message.from_user.id)["number"], mongo.show_users(message.from_user.id)["age"], i["product"], i["price"])
-                 mongo.delete_all_history(message.from_user.id)
-                 await message.answer(f"<strong>Все товары успешно куплены</strong> ✅\nВы сможете забрать все товары в наших магазинах /about, просто показав track-номер\n<strong>Спасибо за покупку</strong> 😃", parse_mode="html")
-             except TypeError:
+                if int(mongo.show_users(message.from_user.id)['age']) < 18:
+                   await message.answer("Лицам младше 18 лет продажа тобачной продукции запрещена ⛔️")
+                else:
+                    for i in mongo.show_history(message.from_user.id):
+                        mongo.inster_cart(message.from_user.id, mongo.show_users(message.from_user.id)["name"], mongo.show_users(message.from_user.id)["number"], mongo.show_users(message.from_user.id)["age"], i["product"], i["price"])
+                    mongo.delete_all_history(message.from_user.id)
+                    await message.answer(f"<strong>Все товары успешно куплены</strong> ✅\nВы сможете забрать все товары в наших магазинах /about, просто показав track-номер\n<strong>Спасибо за покупку</strong> 😃", parse_mode="html")
+             except TypeError and KeyError:
                  await message.answer("Заполните все поля в /settings")
          if message.text == 'Заказы 📦':
              if mongo.show_cart(message.from_user.id):

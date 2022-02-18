@@ -5,7 +5,6 @@ from dispacher import db, bot, mongo
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram import types, executor
-import phonenumbers
 
 # Class State
 
@@ -138,7 +137,11 @@ async def about(message: types.Message):
 @db.callback_query_handler(lambda c: True)
 async def catalog(c: types.CallbackQuery):
 
-    """Showing a subcatalog"""
+    """
+
+    + Showing subcatalog
+
+    """
 
     for i in mongo.show_categories():
         if c.data == i['title']:
@@ -156,6 +159,13 @@ async def catalog(c: types.CallbackQuery):
         for n in mongo.show_under_categories(i["title"]):
             if c.data == n["title"]:
                 count = 0
+
+                """
+                
+                + Showing products
+                
+                """
+
                 for f in mongo.show_product(n["title"]):
                     try:
                         pic = open('picture/' + f['file'] + '.jpg', 'rb')
@@ -174,6 +184,13 @@ async def catalog(c: types.CallbackQuery):
                 mark3 = types.ReplyKeyboardMarkup(resize_keyboard=True)
                 mark3.row("🏠", "🛒", "🛍")
                 await c.message.answer(f"Позаны все товары ({count})", reply_markup=mark3)
+
+        """
+        
+        + Adding product in cart
+        
+        """
+
         for n in mongo.show_under_categories(i["title"]):
             for f in mongo.show_product(n["title"]):
                 if c.data == f['title']:

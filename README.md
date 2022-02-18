@@ -1,13 +1,11 @@
 # 🤖 Yuhu Market Bot | @yuhu_market_bot
+👁 Bot in telegram for hookah ["Yuhu"](https://t.me/yuhu_market_bot)
 <p>
-   <a href="https://t.me/yuhu_market_bot" style
-="background: darkslategray; color:white; padding: 6px 14px; border-radius: 4px; font-size: 9px; text-decoration: none; margin-right: 6px">Yuhu Bot️</a>
-    <a href="https://t.me/YungHellen" style
-="background: slategray; color:white; padding: 6px 14px; border-radius: 4px; font-size: 9px; text-decoration: none">HellenWeb</a>
+   <a href="https://t.me/yuhu_market_bot"><img src="https://img.shields.io/badge/Bot-Telegram-blue"></a>
+   <a href="https://t.me/YungHellen"><img src="https://img.shields.io/badge/HellenWeb-TG-blueviolet"></a>
 </p>
 
-----
-👁 Bot in telegram for hookah ["Yuhu"](https://t.me/yuhu_market_bot)
+------
 ## Launching Bot
 ```
 python3 main.py

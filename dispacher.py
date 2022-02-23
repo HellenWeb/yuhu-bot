@@ -1,4 +1,3 @@
-
 # Modules
 
 from aiogram import Dispatcher, Bot
@@ -18,6 +17,8 @@ logging.basicConfig(level=logging.INFO)
 
 """Common variables for aiogram and class with reference to the base"""
 
-mongo = MongoDB("mongodb+srv://Hellen:fbnz32iZA1ho49iy@cluster0.aqrqr.mongodb.net/yuhu-bot?retryWrites=true&w=majority")
+mongo = MongoDB(
+    "mongodb+srv://Hellen:fbnz32iZA1ho49iy@cluster0.aqrqr.mongodb.net/yuhu-bot?retryWrites=true&w=majority"
+)
 bot = Bot(config.token, parse_mode="html")
 db = Dispatcher(bot, storage=storage)

@@ -1,6 +1,6 @@
 # Modules
 
-from dispacher import db, bot, mongo
+from dispatcher import db, bot, mongo
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram import types, executor
@@ -120,7 +120,7 @@ async def settings(message: types.Message):
                 f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {mongo.show_users(message.from_user.id)['name']}\nНомер - +{mongo.show_users(message.from_user.id)['number']}\nВозраст - {mongo.show_users(message.from_user.id)['age']}",
                 reply_markup=mark1,
             )
-    except TypeError or KeyError:
+    except (TypeError, KeyError):
         await message.answer(
             f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - не введено\nНомер - не введено\nВозраст - не введено\n\nЧтобы поля стали видны нужно заполнить их всех",
             reply_markup=mark1,
@@ -293,7 +293,7 @@ async def catalog(c: types.CallbackQuery):
                             f'Товар <strong>{f["title"]}</strong> успешно добавлен в корзину',
                             parse_mode="html",
                         )
-                    except TypeError or KeyError:
+                    except (TypeError, KeyError):
                         await c.message.answer(f"Введите все поля в /settings")
 
     """To delete product from cart"""
@@ -368,7 +368,7 @@ async def keyboardbutton(message: types.Message):
                         f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {mongo.show_users(message.from_user.id)['name']}\nНомер - +{mongo.show_users(message.from_user.id)['number']}\nВозраст - {mongo.show_users(message.from_user.id)['age']}",
                         reply_markup=mark1,
                     )
-            except TypeError or KeyError:
+            except (TypeError, KeyError):
                 await message.answer(
                     f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - не введено\nНомер - не введено\nВозраст - не введено\n\nЧтобы поля стали видны нужно заполнить их всех",
                     reply_markup=mark1,
@@ -390,7 +390,7 @@ async def keyboardbutton(message: types.Message):
                         f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - {mongo.show_users(message.from_user.id)['name']}\nНомер - +{mongo.show_users(message.from_user.id)['number']}\nВозраст - {mongo.show_users(message.from_user.id)['age']}",
                         reply_markup=mark1,
                     )
-            except TypeError or KeyError:
+            except (TypeError, KeyError):
                 await message.answer(
                     f"ID - {message.from_user.id}\nИмя в telegram - {message.from_user.first_name}\nИмя - не введено\nНомер - не введено\nВозраст - не введено\n\nЧтобы поля стали видны нужно заполнить их всех",
                     reply_markup=mark1,
@@ -540,7 +540,7 @@ async def keyboardbutton(message: types.Message):
                         f"<strong>Все товары успешно куплены</strong> ✅\nВы сможете забрать все товары в наших магазинах /about, просто показав track-номер\n<strong>Спасибо за покупку</strong> 😃",
                         parse_mode="html",
                     )
-            except TypeError or KeyError:
+            except (TypeError, KeyError):
                 await message.answer("Заполните все поля в /settings")
         if message.text == "Заказы 📦":
             if mongo.show_cart(message.from_user.id):

@@ -1,5 +1,4 @@
-aiogram
-rich
+aiogram==2.25.1
 pymongo
 dnspython
-phonenumbers
+python-dotenv

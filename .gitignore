@@ -1,2 +1,5 @@
 config.py
 picture/
+__pycache__/
+.idea/
+.env

@@ -1,21 +1,32 @@
-## 🤖 Yuhu Market Bot | @yuhu_market_bot
-👁 Bot in telegram for hookah ["Yuhu"](https://t.me/yuhu_market_bot)
+# Yuhu Market Bot | @yuhu_market_bot
 
-<p>
-   <a href="https://t.me/yuhu_market_bot"><img src="https://img.shields.io/badge/Bot-Telegram-blue"></a>
-   <a href="https://t.me/YungHellen"><img src="https://img.shields.io/badge/HellenWeb-TG-blueviolet"></a>
-</p>
+**Telegram-бот для магазина электронных сигарет, одноразок и hookah-продукции "Yuhu"** 🚬
 
-------
-## Launching Bot
-```
-python3 main.py
-```
-## Description
-The bot in the telegram for hookah Yuhu is made in Python. In it you can buy the goods you need. 
-Also, the bot is made on the basis of MongoDB
-## Status
-The bot is under development and it is planned to add a large number 
-of functions and transfer the bot to the hosting
-## Creator
-© Copyright by. Hellen
+Современный удобный бот для быстрого оформления заказов популярных вейпов, жидкостей и аксессуаров.
+
+![Telegram Bot](https://img.shields.io/badge/Bot-Telegram-229ED9?style=for-the-badge&logo=telegram)
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python)
+![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb)
+
+## ✨ Возможности
+
+- **Интуитивный каталог** с категориями и подкатегориями товаров
+- **Просмотр товаров** с фото, описанием и ценой
+- **Корзина** — добавление, просмотр и удаление товаров
+- **Быстрое оформление заказа**
+- **Личный кабинет** (имя, номер телефона, возраст)
+- **История заказов**
+- **Информация о магазинах** (Владивосток, Хабаровск, Сахалин, Улан-Удэ, Магадан и др.)
+- **Удобная навигация** с клавиатурами
+
+## 🛠 Технологии
+
+- **Python 3** + [aiogram](https://github.com/aiogram/aiogram) (асинхронный фреймворк)
+- **MongoDB** — хранение пользователей, товаров, корзины и заказов
+- **Inline-кнопки** и **Reply-клавиатуры** для максимального удобства
+
+### 1. Клонируйте репозиторий
+
+```bash
+git clone https://github.com/HellenWeb/yuhu-bot.git
+cd yuhu-bot

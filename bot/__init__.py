@@ -1,0 +1,1 @@
+"""Yuhu bot package."""

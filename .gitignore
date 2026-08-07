@@ -1,5 +1,7 @@
 config.py
 picture/
 __pycache__/
+.venv/
+.vscode/
 .idea/
 .env
